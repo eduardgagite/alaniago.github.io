@@ -72,7 +72,7 @@ export default function Header() {
           >
             <span className="sr-only">Alania GO</span>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-orange rounded-lg flex items-center justify-center">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-orange rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-alania-orange/30">
                 <Code className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
               <span className="text-lg sm:text-xl font-bold gradient-text">Alania GO</span>
@@ -119,7 +119,7 @@ export default function Header() {
                 <div className="mt-auto p-6">
                   <Button
                     asChild
-                    className="w-full bg-gradient-orange hover:opacity-90 transition-opacity min-h-[48px]"
+                    className="w-full bg-gradient-orange hover:opacity-90 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-alania-orange/25 min-h-[48px]"
                     onClick={() => {
                       setIsOpen(false)
                       scrollToSection("#contact")
@@ -154,7 +154,7 @@ export default function Header() {
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
           <Button
             asChild
-            className="bg-gradient-orange hover:opacity-90 transition-opacity"
+            className="bg-gradient-orange hover:opacity-90 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-alania-orange/25"
             onClick={(e) => {
               e.preventDefault()
               scrollToSection("#contact")

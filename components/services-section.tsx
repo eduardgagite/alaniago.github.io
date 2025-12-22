@@ -1,74 +1,86 @@
-import { Code, Globe, Bot, Settings, Smartphone, Cpu } from "lucide-react"
+"use client"
 
-const services = [
+import { Code, Globe, Bot, Settings, Smartphone, Cpu, type LucideIcon } from "lucide-react"
+import { useAnimateOnScroll } from "@/hooks/use-animate-on-scroll"
+
+interface ServiceItem {
+  Icon: LucideIcon
+  title: string
+  description: string
+}
+
+const services: ServiceItem[] = [
   {
-    icon: <Code className="h-10 w-10 text-alania-orange" />,
+    Icon: Code,
     title: "Разработка ПО",
     description:
       "Создаем надежное программное обеспечение для решения ваших бизнес-задач с использованием современных технологий.",
   },
   {
-    icon: <Globe className="h-10 w-10 text-alania-orange" />,
+    Icon: Globe,
     title: "Разработка сайтов",
     description:
       "Проектируем и разрабатываем современные веб-сайты с адаптивным дизайном, оптимизированные для поисковых систем.",
   },
   {
-    icon: <Bot className="h-10 w-10 text-alania-orange" />,
+    Icon: Bot,
     title: "Telegram боты",
     description:
       "Создаем функциональных ботов для автоматизации бизнес-процессов и улучшения коммуникации с клиентами.",
   },
   {
-    icon: <Settings className="h-10 w-10 text-alania-orange" />,
+    Icon: Settings,
     title: "Внедрение CRM систем",
     description:
       "Настраиваем и интегрируем CRM системы (AmoCRM, Bitrix24) для автоматизации продаж и управления клиентами.",
   },
   {
-    icon: <Smartphone className="h-10 w-10 text-alania-orange" />,
+    Icon: Smartphone,
     title: "Мобильные приложения",
     description: "Разрабатываем нативные и кроссплатформенные мобильные приложения для iOS и Android.",
   },
   {
-    icon: <Cpu className="h-10 w-10 text-alania-orange" />,
+    Icon: Cpu,
     title: "Интеграция систем",
     description: "Обеспечиваем бесшовную интеграцию различных систем и сервисов для оптимизации бизнес-процессов.",
   },
 ]
 
-const animationDelays = [
-  "animate-delay-100",
-  "animate-delay-200",
-  "animate-delay-300",
-  "animate-delay-400",
-  "animate-delay-500",
-  "animate-delay-600",
-]
-
 export default function ServicesSection() {
+  const { ref: sectionRef, isVisible } = useAnimateOnScroll<HTMLElement>({ threshold: 0.1 })
+
   return (
     <section
+      ref={sectionRef}
       id="services"
       className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-alania-dark to-alania-dark/95 relative overflow-hidden"
     >
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-32 h-32 border border-alania-orange/10 rounded-full animate-rotate-slow"></div>
-        <div
-          className="absolute bottom-20 right-10 w-24 h-24 border border-alania-amber/10 rounded-full animate-rotate-slow"
-          style={{ animationDirection: "reverse", animationDuration: "15s" }}
-        ></div>
-        <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-alania-orange/30 rounded-full animate-bounce-subtle"></div>
-        <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-alania-amber/40 rounded-full animate-bounce-subtle animate-delay-300"></div>
+        <div className="absolute top-20 left-10 w-32 h-32 border border-alania-orange/10 rounded-full animate-rotate-slow" style={{ animationDuration: "25s" }}></div>
+        <div className="absolute bottom-20 right-10 w-24 h-24 border border-alania-amber/10 rounded-full animate-rotate-reverse" style={{ animationDuration: "20s" }}></div>
+        <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-alania-orange/30 rounded-full animate-particle"></div>
+        <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-alania-amber/40 rounded-full animate-particle" style={{ animationDelay: "1s" }}></div>
+        <div className="hidden md:block absolute bottom-1/3 left-1/3 w-2 h-2 bg-alania-orange/20 rounded-full animate-particle" style={{ animationDelay: "2s" }}></div>
+        
+        {/* Gradient orbs */}
+        <div className="hidden lg:block absolute top-1/4 right-1/4 w-40 h-40 bg-alania-orange/5 rounded-full blur-3xl animate-float-slow"></div>
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
         <div className="text-center mb-10 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 animate-slide-in-up">
+          <h2 
+            className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 transition-all duration-700 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
+          >
             Наши <span className="gradient-text">услуги</span>
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto px-4 animate-slide-in-up animate-delay-200">
+          <p 
+            className={`text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto px-4 transition-all duration-700 delay-150 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
+          >
             Мы предлагаем широкий спектр IT услуг для решения ваших бизнес-задач
           </p>
         </div>
@@ -77,12 +89,20 @@ export default function ServicesSection() {
           {services.map((service, index) => (
             <div
               key={index}
-              className={`bg-white/5 backdrop-blur-sm rounded-lg p-4 sm:p-5 md:p-6 hover:bg-white/10 transition-all duration-500 border border-white/10 hover:translate-y-[-5px] sm:hover:translate-y-[-10px] hover:scale-[1.02] sm:hover:scale-105 gradient-border group animate-slide-in-up ${animationDelays[index]} hover:shadow-2xl hover:shadow-alania-orange/20`}
+              className={`relative bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-5 md:p-6 border border-white/10 group overflow-hidden transition-all duration-500 ${
+                isVisible 
+                  ? "opacity-100 translate-y-0" 
+                  : "opacity-0 translate-y-8"
+              } hover:bg-white/10 hover:-translate-y-2 hover:shadow-2xl hover:shadow-alania-orange/15 hover:border-alania-orange/30`}
+              style={{ transitionDelay: isVisible ? `${index * 100}ms` : "0ms" }}
             >
+              {/* Icon with glow effect */}
               <div className="mb-3 sm:mb-4 relative">
-                <div className="absolute inset-0 bg-alania-orange/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative group-hover:animate-float">{service.icon}</div>
+                <div className="absolute -inset-3 bg-alania-orange/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <service.Icon className="h-10 w-10 text-alania-orange relative transition-all duration-300 group-hover:scale-110 group-hover:text-alania-amber" />
               </div>
+              
+              {/* Content */}
               <h3 className="text-lg sm:text-xl font-semibold mb-2 group-hover:text-alania-orange transition-colors duration-300">
                 {service.title}
               </h3>
@@ -90,10 +110,11 @@ export default function ServicesSection() {
                 {service.description}
               </p>
 
-              {/* Animated border on hover */}
-              <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-alania-orange/20 via-alania-amber/20 to-alania-orange/20 animate-gradient-x"></div>
-              </div>
+              {/* Shimmer effect on hover */}
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none"></div>
+              
+              {/* Corner accent */}
+              <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-alania-orange/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-tr-xl"></div>
             </div>
           ))}
         </div>

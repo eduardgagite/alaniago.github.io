@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, Eye, Code, Calendar } from "lucide-react"
 import { ProjectDetailsModal } from "./project-details-modal"
+import { useAnimateOnScroll } from "@/hooks/use-animate-on-scroll"
 
 const projects = [
   {
@@ -83,6 +84,7 @@ export default function ProjectsSection() {
   const [selectedCategory, setSelectedCategory] = useState("Все проекты")
   const [selectedProject, setSelectedProject] = useState<(typeof projects)[0] | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const { ref: sectionRef, isVisible } = useAnimateOnScroll<HTMLElement>({ threshold: 0.1 })
 
   const filteredProjects =
     selectedCategory === "Все проекты" ? projects : projects.filter((project) => project.category === selectedCategory)
@@ -94,31 +96,46 @@ export default function ProjectsSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="projects"
       className="py-12 sm:py-16 md:py-24 bg-gradient-to-b from-alania-dark/95 to-alania-dark relative overflow-hidden"
     >
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-40 h-40 border border-alania-orange/5 rounded-full animate-rotate-slow"></div>
-        <div
-          className="absolute bottom-20 right-20 w-32 h-32 border border-alania-amber/5 rounded-full animate-rotate-slow"
-          style={{ animationDirection: "reverse", animationDuration: "25s" }}
-        ></div>
-        <div className="absolute top-1/3 left-1/3 w-2 h-2 bg-alania-orange/20 rounded-full animate-bounce-subtle"></div>
-        <div className="absolute bottom-1/3 right-1/3 w-1.5 h-1.5 bg-alania-amber/20 rounded-full animate-bounce-subtle animate-delay-400"></div>
+        <div className="absolute top-20 left-20 w-40 h-40 border border-alania-orange/10 rounded-full animate-rotate-slow" style={{ animationDuration: "30s" }}></div>
+        <div className="absolute bottom-20 right-20 w-32 h-32 border border-alania-amber/10 rounded-full animate-rotate-reverse" style={{ animationDuration: "25s" }}></div>
+        <div className="absolute top-1/3 left-1/3 w-2 h-2 bg-alania-orange/30 rounded-full animate-particle"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-1.5 h-1.5 bg-alania-amber/30 rounded-full animate-particle" style={{ animationDelay: "1.5s" }}></div>
+        <div className="hidden md:block absolute top-1/2 right-1/4 w-2 h-2 bg-alania-orange/20 rounded-full animate-particle" style={{ animationDelay: "3s" }}></div>
+        
+        {/* Gradient orbs */}
+        <div className="hidden lg:block absolute top-1/4 left-1/5 w-40 h-40 bg-alania-orange/5 rounded-full blur-3xl animate-float-slow"></div>
+        <div className="hidden lg:block absolute bottom-1/4 right-1/5 w-32 h-32 bg-alania-amber/5 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: "2s" }}></div>
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative z-10">
         <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 animate-slide-in-up">
+          <h2 
+            className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-4 transition-all duration-700 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
+          >
             Наши <span className="gradient-text">проекты</span>
           </h2>
-          <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 animate-slide-in-up animate-delay-200 px-4">
+          <p 
+            className={`text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-4 transition-all duration-700 delay-150 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
+          >
             Примеры наших работ, которые приносят реальную пользу клиентам и решают бизнес-задачи
           </p>
 
           {/* Category Filter - Mobile Optimized */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 animate-slide-in-up animate-delay-400 px-2">
+          <div 
+            className={`flex flex-wrap justify-center gap-2 sm:gap-3 px-2 transition-all duration-700 delay-300 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
+          >
             {categories.map((category) => (
               <button
                 key={category}
@@ -139,10 +156,11 @@ export default function ProjectsSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {filteredProjects.map((project, index) => (
             <div
-              key={index}
-              className={`group bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-alania-orange/50 transition-all duration-500 hover:translate-y-[-5px] sm:hover:translate-y-[-10px] hover:scale-[1.01] sm:hover:scale-[1.02] animate-slide-in-up hover:shadow-2xl hover:shadow-alania-orange/20 ${
-                index % 2 === 0 ? "animate-delay-100" : "animate-delay-300"
-              }`}
+              key={project.title}
+              className={`group bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 relative transition-all duration-500 ${
+                isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              } hover:border-alania-orange/50 hover:-translate-y-2 hover:shadow-2xl hover:shadow-alania-orange/20`}
+              style={{ transitionDelay: isVisible ? `${400 + index * 150}ms` : "0ms" }}
             >
               {/* Project Image */}
               <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden">
