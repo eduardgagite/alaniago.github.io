@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -18,16 +18,11 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://alaniago.github.io"),
   title: "Alania GO | Разработка ПО, сайтов и ТГ ботов",
   description:
     "Alania GO - команда талантливых разработчиков, предлагающая качественные IT продукты за адекватную сумму.",
   keywords: ["разработка ПО", "создание сайтов", "telegram боты", "веб-разработка", "IT услуги"],
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
   icons: {
     icon: [
       { url: "/favicons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
@@ -64,6 +59,13 @@ export const metadata: Metadata = {
     description: "Качественные IT решения для вашего бизнеса: разработка ПО, веб-сайты, Telegram боты",
     images: ["/og-image.png"],
   },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 }
 
 export default function RootLayout({

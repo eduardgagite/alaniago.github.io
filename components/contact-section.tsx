@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,6 +9,9 @@ import { Mail, Phone, MapPin, Send, Clock, MessageCircle } from "lucide-react"
 import { useAnimateOnScroll } from "@/hooks/use-animate-on-scroll"
 
 export default function ContactSection() {
+  const STORAGE_KEY = "contact-form-draft"
+  const COOLDOWN_MS = 20000
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -19,18 +22,150 @@ export default function ContactSection() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitError, setSubmitError] = useState("")
+  const [submitRequestId, setSubmitRequestId] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [honeypot, setHoneypot] = useState("")
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null)
+  const [cooldownTick, setCooldownTick] = useState(0)
   const { ref: sectionRef, isVisible } = useAnimateOnScroll<HTMLElement>({ threshold: 0.1 })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev }
+        delete next[name]
+        return next
+      })
+    }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored) as typeof formData
+        if (parsed && !formData.name && !formData.email && !formData.phone && !formData.message) {
+          setFormData(parsed)
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to read contact form draft:", error)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    try {
+      const isEmpty =
+        !formData.name.trim() &&
+        !formData.email.trim() &&
+        !formData.phone.trim() &&
+        !formData.message.trim()
+
+      if (isEmpty) {
+        localStorage.removeItem(STORAGE_KEY)
+        return
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData))
+    } catch (error) {
+      console.warn("Failed to save contact form draft:", error)
+    }
+  }, [formData])
+
+  useEffect(() => {
+    if (!cooldownUntil) {
+      return
+    }
+    const intervalId = window.setInterval(() => {
+      setCooldownTick((prev) => prev + 1)
+    }, 1000)
+    return () => window.clearInterval(intervalId)
+  }, [cooldownUntil])
+
+  const formatPhone = (value: string) => {
+    let digits = value.replace(/\D/g, "")
+    if (digits.startsWith("8")) {
+      digits = `7${digits.slice(1)}`
+    }
+    if (digits.length > 11) {
+      digits = digits.slice(0, 11)
+    }
+    const hasCountry = digits.startsWith("7")
+    const body = hasCountry ? digits.slice(1) : digits
+
+    let result = hasCountry ? "+7" : ""
+    if (body.length > 0) {
+      result += ` (${body.slice(0, 3)}`
+    }
+    if (body.length >= 4) {
+      result += `) ${body.slice(3, 6)}`
+    }
+    if (body.length >= 7) {
+      result += `-${body.slice(6, 8)}`
+    }
+    if (body.length >= 9) {
+      result += `-${body.slice(8, 10)}`
+    }
+    return result
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value)
+    setFormData((prev) => ({ ...prev, phone: formatted }))
+    if (fieldErrors.phone) {
+      setFieldErrors((prev) => {
+        const next = { ...prev }
+        delete next.phone
+        return next
+      })
+    }
+  }
+
+  const getFieldErrors = () => {
+    const errors: Record<string, string> = {}
+    const name = formData.name.trim()
+    const email = formData.email.trim()
+    const phone = formData.phone.trim()
+    const message = formData.message.trim()
+
+    if (name.length < 2) {
+      errors.name = "Введите имя (минимум 2 символа)."
+    }
+
+    if (!email) {
+      errors.email = "Введите email."
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)) {
+      errors.email = "Введите корректный email."
+    }
+
+    if (phone) {
+      const digits = phone.replace(/\D/g, "")
+      if (digits.length < 11 || !digits.startsWith("7")) {
+        errors.phone = "Введите корректный номер телефона."
+      }
+    }
+
+    if (message.length < 10) {
+      errors.message = "Сообщение должно быть не короче 10 символов."
+    }
+
+    return errors
+  }
+
+  const submitForm = async () => {
+    const errors = getFieldErrors()
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
     setIsSubmitting(true)
     setSubmitSuccess(false)
     setSubmitError("")
+    setSubmitRequestId(null)
 
     // URL вебхука берется из переменных окружения
     const WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
@@ -42,22 +177,73 @@ export default function ContactSection() {
       return
     }
 
+    if (!navigator.onLine) {
+      setSubmitError("Нет подключения к интернету. Проверьте соединение и попробуйте снова.")
+      setIsSubmitting(false)
+      return
+    }
+
+    if (honeypot) {
+      setSubmitError("Проверка безопасности не пройдена. Попробуйте позже.")
+      setIsSubmitting(false)
+      return
+    }
+
+    if (cooldownUntil && cooldownUntil > Date.now()) {
+      setSubmitError("Повторная отправка пока недоступна. Подождите немного.")
+      setIsSubmitting(false)
+      return
+    }
+
+    const requestId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
+
+    setSubmitRequestId(requestId)
+
+    const normalizedMessage = formData.message.replace(/\s+/g, " ").trim()
+
+    const payload = {
+      ...formData,
+      message: normalizedMessage,
+      requestId,
+      submittedAt: new Date().toISOString(),
+      source: window.location.href,
+      userAgent: navigator.userAgent,
+    }
+
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 12000)
+
     try {
-      // Используем mode: 'no-cors' и Content-Type: 'text/plain' для избежания CORS ошибок (preflight requests)
-      // N8N должен быть настроен на прием JSON или text body. 
-      // При no-cors мы не можем узнать статус ответа (ok/error), поэтому считаем отправку успешной, если не было сетевой ошибки.
-      await fetch(WEBHOOK_URL, {
+      const response = await fetch(WEBHOOK_URL, {
         method: "POST",
-        mode: "no-cors", 
+        mode: "cors",
+        cache: "no-store",
+        signal: controller.signal,
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
+          Accept: "application/json, text/plain;q=0.9",
         },
-        body: JSON.stringify({
-          ...formData,
-          submittedAt: new Date().toISOString(),
-          source: window.location.href,
-        }),
+        body: JSON.stringify(payload),
       })
+
+      const responseText = await response.text()
+      const contentType = response.headers.get("content-type") || ""
+      const responseData =
+        contentType.includes("application/json") && responseText
+          ? (JSON.parse(responseText) as { message?: string; error?: string })
+          : null
+
+      if (!response.ok) {
+        const serverMessage = responseData?.error || responseData?.message || responseText
+        throw new Error(
+          serverMessage
+            ? `Ошибка сервера (${response.status}): ${serverMessage}`
+            : `Ошибка сервера (${response.status})`
+        )
+      }
 
       setSubmitSuccess(true)
       setFormData({
@@ -66,15 +252,36 @@ export default function ContactSection() {
         phone: "",
         message: "",
       })
+      setCooldownUntil(Date.now() + COOLDOWN_MS)
+      localStorage.removeItem(STORAGE_KEY)
     } catch (error) {
       console.error("Error submitting form:", error)
-      setSubmitError(
-        `Ошибка при отправке: ${error instanceof Error ? error.message : "Проверьте соединение или настройки"}`
-      )
+      const message =
+        error instanceof DOMException && error.name === "AbortError"
+          ? "Превышено время ожидания ответа. Попробуйте еще раз."
+          : error instanceof Error
+            ? error.message
+            : "Проверьте соединение или настройки"
+      setSubmitError(`Ошибка при отправке: ${message}`)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData))
     } finally {
+      window.clearTimeout(timeoutId)
       setIsSubmitting(false)
     }
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await submitForm()
+  }
+
+  const isCoolingDown = cooldownUntil ? cooldownUntil > Date.now() : false
+  const cooldownSeconds =
+    isCoolingDown && cooldownUntil
+      ? Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000))
+      : 0
+
+  const isFormValid = useMemo(() => Object.keys(getFieldErrors()).length === 0, [formData])
 
   return (
     <section
@@ -134,16 +341,49 @@ export default function ContactSection() {
                   <p className="text-green-400 text-sm sm:text-base">
                     ✅ Спасибо за сообщение! Мы получили вашу заявку и свяжемся с вами в ближайшее время.
                   </p>
+                  {submitRequestId && (
+                    <p className="text-green-300 text-xs sm:text-sm mt-2">
+                      Код заявки: {submitRequestId}
+                    </p>
+                  )}
                 </div>
               )}
 
               {submitError && (
                 <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
                   <p className="text-red-400 text-sm sm:text-base">❌ {submitError}</p>
+                  {submitRequestId && (
+                    <p className="text-red-300 text-xs sm:text-sm mt-2">
+                      Код заявки: {submitRequestId}
+                    </p>
+                  )}
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => submitForm()}
+                      disabled={isSubmitting || isCoolingDown}
+                      className="w-full sm:w-auto"
+                    >
+                      Повторить отправку
+                    </Button>
+                  </div>
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                <div className="hidden" aria-hidden="true">
+                  <label htmlFor="company">Company</label>
+                  <input
+                    id="company"
+                    name="company"
+                    type="text"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label htmlFor="name" className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 text-gray-300">
@@ -156,8 +396,19 @@ export default function ContactSection() {
                       onChange={handleChange}
                       placeholder="Иван Иванов"
                       required
-                      className="bg-white/5 border-white/10 focus:border-alania-orange transition-colors text-sm sm:text-base min-h-[44px]"
+                      className={`bg-white/5 border-white/10 focus:border-alania-orange transition-colors text-sm sm:text-base min-h-[44px] ${
+                        fieldErrors.name
+                          ? "border-red-400/70 animate-shake"
+                          : formData.name.trim().length > 0
+                            ? "border-emerald-400/70"
+                            : ""
+                      }`}
                     />
+                    {fieldErrors.name && (
+                      <p className="text-xs sm:text-sm text-red-300 mt-1 animate-fade-in">
+                        {fieldErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -168,10 +419,24 @@ export default function ContactSection() {
                       id="phone"
                       name="phone"
                       value={formData.phone}
-                      onChange={handleChange}
+                      onChange={handlePhoneChange}
+                      inputMode="tel"
+                      autoComplete="tel"
+                      pattern="^\+7\s?\(\d{3}\)\s?\d{3}-\d{2}-\d{2}$"
                       placeholder="+7 (999) 123-45-67"
-                      className="bg-white/5 border-white/10 focus:border-alania-orange transition-colors text-sm sm:text-base min-h-[44px]"
+                      className={`bg-white/5 border-white/10 focus:border-alania-orange transition-colors text-sm sm:text-base min-h-[44px] ${
+                        fieldErrors.phone
+                          ? "border-red-400/70 animate-shake"
+                          : formData.phone.trim().length > 0
+                            ? "border-emerald-400/70"
+                            : ""
+                      }`}
                     />
+                    {fieldErrors.phone && (
+                      <p className="text-xs sm:text-sm text-red-300 mt-1 animate-fade-in">
+                        {fieldErrors.phone}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -187,8 +452,19 @@ export default function ContactSection() {
                     onChange={handleChange}
                     placeholder="example@mail.ru"
                     required
-                    className="bg-white/5 border-white/10 focus:border-alania-orange transition-colors text-sm sm:text-base min-h-[44px]"
+                    className={`bg-white/5 border-white/10 focus:border-alania-orange transition-colors text-sm sm:text-base min-h-[44px] ${
+                      fieldErrors.email
+                        ? "border-red-400/70 animate-shake"
+                        : formData.email.trim().length > 0
+                          ? "border-emerald-400/70"
+                          : ""
+                    }`}
                   />
+                  {fieldErrors.email && (
+                    <p className="text-xs sm:text-sm text-red-300 mt-1 animate-fade-in">
+                      {fieldErrors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -202,13 +478,24 @@ export default function ContactSection() {
                     onChange={handleChange}
                     placeholder="Расскажите о вашем проекте..."
                     required
-                    className="bg-white/5 border-white/10 focus:border-alania-orange min-h-[100px] sm:min-h-[120px] transition-colors resize-none text-sm sm:text-base"
+                    className={`bg-white/5 border-white/10 focus:border-alania-orange min-h-[100px] sm:min-h-[120px] transition-colors resize-none text-sm sm:text-base ${
+                      fieldErrors.message
+                        ? "border-red-400/70 animate-shake"
+                        : formData.message.trim().length > 0
+                          ? "border-emerald-400/70"
+                          : ""
+                    }`}
                   />
+                  {fieldErrors.message && (
+                    <p className="text-xs sm:text-sm text-red-300 mt-1 animate-fade-in">
+                      {fieldErrors.message}
+                    </p>
+                  )}
                 </div>
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !isFormValid || isCoolingDown}
                   className="w-full bg-gradient-orange hover:opacity-90 transition-opacity text-white font-semibold py-3 min-h-[48px] text-sm sm:text-base"
                 >
                   {isSubmitting ? (
@@ -241,6 +528,11 @@ export default function ContactSection() {
                     </span>
                   )}
                 </Button>
+                {isCoolingDown && (
+                  <p className="text-xs sm:text-sm text-gray-400 mt-2">
+                    Повторная отправка доступна через {cooldownSeconds} сек.
+                  </p>
+                )}
               </form>
             </div>
           </div>

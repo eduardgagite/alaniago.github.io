@@ -377,6 +377,24 @@
   }
 }
 
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
 /* Typing cursor animation */
 @keyframes blink {
   0%, 100% { opacity: 1; }
@@ -532,6 +550,10 @@
 
 .group:hover .group-hover\:animate-icon-shake {
   animation: icon-shake 0.4s ease-in-out;
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out;
 }
 
 /* Animation delays */
