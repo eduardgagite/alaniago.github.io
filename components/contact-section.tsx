@@ -11,6 +11,7 @@ import { useAnimateOnScroll } from "@/hooks/use-animate-on-scroll"
 export default function ContactSection() {
   const STORAGE_KEY = "contact-form-draft"
   const COOLDOWN_MS = 20000
+  const isWebhookConfigured = Boolean(process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -495,7 +496,7 @@ export default function ContactSection() {
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting || !isFormValid || isCoolingDown}
+                  disabled={!isWebhookConfigured || isSubmitting || !isFormValid || isCoolingDown}
                   className="w-full bg-gradient-orange hover:opacity-90 transition-opacity text-white font-semibold py-3 min-h-[48px] text-sm sm:text-base"
                 >
                   {isSubmitting ? (
@@ -528,6 +529,11 @@ export default function ContactSection() {
                     </span>
                   )}
                 </Button>
+                {!isWebhookConfigured && (
+                  <p className="text-xs sm:text-sm text-amber-300 mt-2">
+                    Отправка временно недоступна — настройте переменную `NEXT_PUBLIC_N8N_WEBHOOK_URL`.
+                  </p>
+                )}
                 {isCoolingDown && (
                   <p className="text-xs sm:text-sm text-gray-400 mt-2">
                     Повторная отправка доступна через {cooldownSeconds} сек.

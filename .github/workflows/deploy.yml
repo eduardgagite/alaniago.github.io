@@ -38,6 +38,8 @@ jobs:
 
       - name: Build static site
         run: pnpm run build
+        env:
+          NEXT_PUBLIC_N8N_WEBHOOK_URL: ${{ secrets.NEXT_PUBLIC_N8N_WEBHOOK_URL }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
