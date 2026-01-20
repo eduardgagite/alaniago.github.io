@@ -358,17 +358,6 @@ export default function ContactSection() {
                       Код заявки: {submitRequestId}
                     </p>
                   )}
-                  <div className="mt-3">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => submitForm()}
-                      disabled={isSubmitting || isCoolingDown}
-                      className="w-full sm:w-auto"
-                    >
-                      Повторить отправку
-                    </Button>
-                  </div>
                 </div>
               )}
 
