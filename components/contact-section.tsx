@@ -412,7 +412,7 @@ export default function ContactSection() {
                       onChange={handlePhoneChange}
                       inputMode="tel"
                       autoComplete="tel"
-                      pattern="^\+7\s?\(\d{3}\)\s?\d{3}-\d{2}-\d{2}$"
+                      pattern="^\\+7\\s?\\(\\d{3}\\)\\s?\\d{3}-\\d{2}-\\d{2}$"
                       placeholder="+7 (999) 123-45-67"
                       className={`bg-white/5 border-white/10 focus:border-alania-orange transition-colors text-sm sm:text-base min-h-[44px] ${
                         fieldErrors.phone

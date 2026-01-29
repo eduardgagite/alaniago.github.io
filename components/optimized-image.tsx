@@ -25,6 +25,7 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const [imgSrc, setImgSrc] = useState(src)
   const [hasError, setHasError] = useState(false)
+  const resolvedPlaceholder = props.placeholder ?? (props.blurDataURL ? 'blur' : 'empty')
 
   const handleError = useCallback(() => {
     if (!hasError) {
@@ -43,8 +44,8 @@ export function OptimizedImage({
       className={className}
       loading={loading}
       onError={handleError}
-      // Enable blur placeholder for better perceived performance
-      placeholder={props.placeholder || (typeof src === 'string' && src.endsWith('.png') ? 'blur' : 'empty')}
+      // Avoid blur placeholder without blurDataURL to prevent runtime errors
+      placeholder={resolvedPlaceholder}
     />
   )
 }
